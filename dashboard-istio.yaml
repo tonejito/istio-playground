@@ -1,0 +1,68 @@
+################################################################################
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+spec:
+  selector:
+    # Use Istio default gateway implementation
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - '*'
+    # - 'dashboard.192.168.59.10.nip.io'
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+...
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+spec:
+  gateways:
+  - kubernetes-dashboard/kubernetes-dashboard
+  hosts:
+  - '*'
+  # - 'dashboard.192.168.59.10.nip.io'
+  http:
+  - match:
+    - uri:
+        prefix: /kubernetes-dashboard/
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: kubernetes-dashboard
+        port:
+          number: 80
+...
+################################################################################
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+  annotations:
+    # Ingress annotations other than ingress class will not be honored
+    kubernetes.io/ingress.class: istio
+spec:
+  # ingressClassName: istio
+  rules:
+  - host: dashboard.192.168.59.10.nip.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kubernetes-dashboard
+            port:
+              number: 80
+...
