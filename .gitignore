@@ -1,2 +1,6 @@
 #	.gitignore
 .*.sw?
+
+# Istio
+download-istio.sh
+**/istio-*/**
