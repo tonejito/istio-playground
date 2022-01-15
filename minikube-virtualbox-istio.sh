@@ -8,24 +8,35 @@ minikube delete --profile ${MINIKUBE_PROFILE}
 sleep 10
 
 minikube start --driver=virtualbox --cpus=4 --memory=8g --profile ${MINIKUBE_PROFILE}
+
 minikube profile list
 kubectl config get-contexts
 
 sleep 30
 
-kubectl wait --for condition=ready pods -l k8s-app=kube-proxy -n kube-system --timeout=5m
-kubectl wait --for condition=ready pods -l k8s-app=kube-dns   -n kube-system --timeout=5m
+NAMESPACE=kube-system
+for APP in kube-proxy kube-dns
+do
+  kubectl wait --for condition=ready pod -l k8s-app=${APP} -n ${NAMESPACE} --timeout=5m
+done
 
 sleep 5
 
 minikube addons enable dashboard --profile ${MINIKUBE_PROFILE}
-kubectl wait --for condition=ready pod -l k8s-app=kubernetes-dashboard      -n kubernetes-dashboard --timeout=5m
-kubectl wait --for condition=ready pod -l k8s-app=dashboard-metrics-scraper -n kubernetes-dashboard --timeout=5m
+NAMESPACE=kubernetes-dashboard
+for APP in kubernetes-dashboard dashboard-metrics-scraper
+do
+  kubectl wait --for condition=ready pod -l k8s-app=${APP} -n ${NAMESPACE} --timeout=5m
+done
 
 sleep 5
 
 minikube addons enable metrics-server --profile ${MINIKUBE_PROFILE}
-kubectl wait --for condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=5m
+NAMESPACE=kube-system
+for APP in metrics-server
+do
+  kubectl wait --for condition=ready pod -l k8s-app=${APP} -n ${NAMESPACE} --timeout=5m
+done
 
 kubectl get all --all-namespaces
 
@@ -55,8 +66,12 @@ EOF
 
 kubectl apply -n metallb-system -f metallb-config.yaml
 
-kubectl wait --for condition=ready pod -l app=metallb -l component=controller -n metallb-system --timeout=5m
-kubectl wait --for condition=ready pod -l app=metallb -l component=speaker -n metallb-system --timeout=5m
+NAMESPACE=metallb-system
+APP=metallb
+for COMPONENT in controller speaker
+do
+  kubectl wait --for condition=ready pod -l app=${APP} -l component=${COMPONENT} -n ${NAMESPACE} --timeout=5m
+done
 
 sleep 10
 
@@ -97,10 +112,12 @@ done
 pushd istio-${ISTIO_VERSION}
 kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
 
-kubectl wait --for condition=ready pod -l app=details -n default --timeout=5m
-kubectl wait --for condition=ready pod -l app=productpage -n default --timeout=5m
-kubectl wait --for condition=ready pod -l app=ratings -n default --timeout=5m
-kubectl wait --for condition=ready pod -l app=reviews -n default --timeout=5m  # version=v{1..3}
+NAMESPACE=default
+# app=reviews version=v{1..3}
+for APP in details productpage ratings reviews
+do
+  kubectl wait --for condition=ready pod -l app=${APP} -n ${NAMESPACE} --timeout=5m
+done
 
 kubectl exec -it deployment/ratings-v1 -c ratings -- \
   curl -sS productpage:9080/productpage | \
@@ -143,10 +160,11 @@ sleep 10
 
 kubectl apply -f samples/addons
 
-kubectl wait --for condition=ready pod -l app=grafana    -n istio-system --timeout=5m
-kubectl wait --for condition=ready pod -l app=prometheus -n istio-system --timeout=5m
-kubectl wait --for condition=ready pod -l app=jaeger     -n istio-system --timeout=5m
-kubectl wait --for condition=ready pod -l app=kiali      -n istio-system --timeout=5m
+NAMESPACE=istio-system
+for APP in grafana prometheus jaeger kiali
+do
+  kubectl wait --for condition=ready pod -l app=${APP} -n ${NAMESPACE} --timeout=5m
+done
 
 popd 
 
