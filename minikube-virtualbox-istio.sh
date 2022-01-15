@@ -8,6 +8,7 @@ minikube delete --profile ${MINIKUBE_PROFILE}
 sleep 10
 
 minikube start --driver=virtualbox --cpus=4 --memory=8g --profile ${MINIKUBE_PROFILE}
+vboxmanage controlvm ${MINIKUBE_PROFILE} cpuexecutioncap 50
 
 minikube profile list
 kubectl config get-contexts
