@@ -1,1 +1,21 @@
 # Istio playground with minikube
+
+- Installing `istio` on `minikube`
+    - Prerequisites
+        - Deploy minikube cluster
+        - Enable kubernetes-dashboard (optional)
+            - Enable kubernetes-dashboard RBAC (optional)
+        - Enable metrics-server (optional)
+        - Install MetalLB (optional but recommended)
+    - Deploy Istio
+        - Download release files
+        - Set up `istioctl`
+        - Install with `istioctl install`
+        - Enable istio-proxy sidecar injection in target namespaces
+        - Reload kubernetes-dashboard pods with istio-proxy enabled (optional)
+        - Expose internal applications with a simple istio `ingress` resource
+            - kubernetes-dashboard
+            - kiali, prometheus, grafana (istio-system)
+    - Install istio example application
+        - Patch gateway and virtualservice with a single DNS host
+        - `istioctl analyze`
