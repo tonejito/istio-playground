@@ -120,3 +120,57 @@ sleep 15
 helm status istiod -n istio-system
 
 kubectl get all --all-namespaces
+
+# Enable istio-proxy on certain namespaces
+# TODO: Create demo namespace for the example applications
+
+sleep 5
+
+for NAMESPACE in default kubernetes-dashboard
+do
+  kubectl label namespace ${NAMESPACE} istio-injection=enabled --overwrite
+done
+kubectl get namespaces --show-labels
+
+sleep 5
+
+# Scale down-up the kubernetes-dashboard to get istio-proxy sidecar working
+for TARGET in kubernetes-dashboard dashboard-metrics-scraper
+do
+  kubectl scale deployment ${TARGET} -n kubernetes-dashboard --replicas 0
+  sleep 1
+  kubectl scale deployment ${TARGET} -n kubernetes-dashboard --replicas 1
+  sleep 5
+  kubectl wait --for condition=ready pod -l k8s-app=${TARGET} -n kubernetes-dashboard --timeout=${TIMEOUT}
+done
+
+########################################
+# Get istio ingress endpoint
+set +e
+INGRESS_SERVICE=istio-ingress
+INGRESS_NAMESPACE=istio-ingress
+INGRESS_SELECTOR="istio=ingress"
+# minikube
+# Set the ingress IP and ports if MetalLB is not configured
+# export INGRESS_HOST=$(minikube ip)
+export INGRESS_HOST=$(kubectl get node ${MINIKUBE_PROFILE} -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+export INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
+export SECURE_INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+# minikube tunnel --profile ${MINIKUBE_PROFILE}
+
+# other
+# Execute the following command to determine if your Kubernetes cluster is running in an environment that supports external load balancers:
+kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE}
+
+# Set the ingress IP and ports if MetalLB is configured
+export INGRESS_HOST=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+
+# # In certain environments, the load balancer may be exposed using a host name, instead of an IP address.
+# export INGRESS_HOSTNAME=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+# Other environments:
+# export INGRESS_HOST=$(kubectl get pods -l ${INGRESS_SELECTOR} -n ${INGRESS_NAMESPACE} -o jsonpath='{.items[0].status.hostIP}')
+
+set -e
