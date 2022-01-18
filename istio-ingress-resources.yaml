@@ -11,7 +11,7 @@ metadata:
 spec:
   # ingressClassName: istio
   rules:
-  - host: kiali.192.168.59.10.nip.io
+  - host: kiali.192.168.59.10.tonejito.work
     http:
       paths:
       - path: /
@@ -35,7 +35,7 @@ metadata:
 spec:
   # ingressClassName: istio
   rules:
-  - host: prometheus.192.168.59.10.nip.io
+  - host: prometheus.192.168.59.10.tonejito.work
     http:
       paths:
       - path: /
@@ -59,7 +59,7 @@ metadata:
 spec:
   # ingressClassName: istio
   rules:
-  - host: grafana.192.168.59.10.nip.io
+  - host: grafana.192.168.59.10.tonejito.work
     http:
       paths:
       - path: /
