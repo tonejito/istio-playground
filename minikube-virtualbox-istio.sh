@@ -62,7 +62,7 @@ kubectl get all --all-namespaces
 # Install and configure MetalLB
 
 METALLB_IP_START=192.168.59.10
-METALLB_IP_END=192.168.59.99
+METALLB_IP_END=192.168.59.20
 minikube addons list --profile ${MINIKUBE_PROFILE}
 minikube addons enable metallb --profile ${MINIKUBE_PROFILE}
 sleep 10
@@ -141,34 +141,44 @@ do
   kubectl wait --for condition=ready pod -l k8s-app=${TARGET} -n kubernetes-dashboard --timeout=${TIMEOUT}
 done
 
+popd
+
 ########################################
 # Get istio ingress endpoint
-
+set +e
+INGRESS_SERVICE=istio-ingressgateway
+INGRESS_NAMESPACE=istio-system
+INGRESS_SELECTOR="istio=ingressgateway"
 # minikube
 # Set the ingress IP and ports if MetalLB is not configured
 # export INGRESS_HOST=$(minikube ip)
 export INGRESS_HOST=$(kubectl get node ${MINIKUBE_PROFILE} -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
-export INGRESS_PORT=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
-export SECURE_INGRESS_PORT=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+export INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
+export SECURE_INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
 # minikube tunnel --profile ${MINIKUBE_PROFILE}
 
 # other
 # Execute the following command to determine if your Kubernetes cluster is running in an environment that supports external load balancers:
-kubectl get svc istio-ingressgateway -n istio-system
+kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE}
 
 # Set the ingress IP and ports if MetalLB is configured
-export INGRESS_HOST=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-export INGRESS_PORT=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
-export SECURE_INGRESS_PORT=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+export INGRESS_HOST=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
 
 # # In certain environments, the load balancer may be exposed using a host name, instead of an IP address.
-# export INGRESS_HOST=$(kubectl get service istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+# export INGRESS_HOSTNAME=$(kubectl get service ${INGRESS_SERVICE} -n ${INGRESS_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 
 # Other environments:
-# export INGRESS_HOST=$(kubectl get pods -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}')
+# export INGRESS_HOST=$(kubectl get pods -l ${INGRESS_SELECTOR} -n ${INGRESS_NAMESPACE} -o jsonpath='{.items[0].status.hostIP}')
+
+set -e
 
 ########################################
 # Deploy istio addons
+
+pushd istio-${ISTIO_VERSION}
+
 kubectl apply -f samples/addons
 
 sleep 5
